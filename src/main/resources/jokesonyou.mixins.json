@@ -5,8 +5,6 @@
 	"mixins": [
 		"FoxEntityMixin",
 		"ItemEntityMixin",
-		"PlayerEntityMixin",
-		"PlayerInventoryMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

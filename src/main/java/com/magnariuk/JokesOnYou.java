@@ -1,6 +1,5 @@
 package com.magnariuk;
 
-import com.magnariuk.abstracts.PlayerPickupItemCallback;
 import com.magnariuk.records.PenaltyEntry;
 import com.magnariuk.records.TimeEntry;
 import com.magnariuk.records.TimeMap;
@@ -55,33 +54,6 @@ public class JokesOnYou implements ModInitializer {
 
     @Override
 	public void onInitialize() {
-//		PlayerPickupItemCallback.EVENT.register((inventory, slot, stack) -> {
-//			if(ItemStack.areEqual(stack, getJokeCard())) {
-//				MinecraftServer server = inventory.player.getServer();
-//				if (server != null) {
-//					ServerWorld world = server.getWorld(World.OVERWORLD);
-//					TimeMap timeMap = world.getAttachedOrCreate(TIME_DATA, TIME_DATA_SUPPLIER);
-//
-//					if (timeMap != null) {
-//						if (timeMap.isPaused() && !timeMap.current().equals(inventory.player.getGameProfile().getName())) {
-//							inventory.player.getCommandSource().sendMessage(Text.of("Game is paused. Please, return The Joke to " + timeMap.current()));
-//						} else {
-//							if (!timeMap.current().equals(inventory.player.getGameProfile().getName())) {
-//								world.setAttached(TIME_DATA, timeMap.update(inventory.player.getGameProfile().getName(), new TimeEntry(inventory.player.getGameProfile().getName(), Instant.now().getEpochSecond())));
-//								sendTitle(server.getPlayerManager().getPlayer(inventory.player.getGameProfile().getId()), "Joke's on you!", Formatting.RED, false);
-//								sendTitle(server.getPlayerManager().getPlayer(timeMap.current()), "Joke's not on you!", Formatting.GREEN, false);
-//							}
-//						}
-//					} else {
-//						inventory.player.getCommandSource().sendMessage(Text.of("Game is not running."));
-//					}
-//
-//				} else {
-//					LOGGER.warn("Server is null");
-//				}
-//			}
-//			return ActionResult.PASS;
-//		});
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(CommandManager.literal("jokesonyou")
