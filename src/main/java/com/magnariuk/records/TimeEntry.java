@@ -12,3 +12,4 @@ public record TimeEntry(String player, long time) {
             ).apply(inst, TimeEntry::new));
 }
 
+

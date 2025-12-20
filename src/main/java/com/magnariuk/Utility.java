@@ -1,5 +1,6 @@
 package com.magnariuk;
 
+import com.magnariuk.records.PenaltyEntry;
 import com.magnariuk.records.TimeEntry;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.component.DataComponentTypes;
@@ -9,6 +10,7 @@ import net.minecraft.component.type.NbtComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
 import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -77,8 +79,11 @@ public class Utility {
 
     }
 
+    public static void sendTitle(ServerPlayerEntity player, String message, Formatting color, boolean isBold){
+        sendTitle(player, message, color, isBold, false);
+    }
 
-    public static void sendTitle(ServerPlayerEntity player, String message, Formatting color, boolean isBold) {
+    public static void sendTitle(ServerPlayerEntity player, String message, Formatting color, boolean isBold, boolean isSubtitle) {
         if(player == null) return;
         Text titleText;
         if (isBold) {
@@ -86,11 +91,20 @@ public class Utility {
         } else{
             titleText = Text.literal(message).styled(style -> style.withColor(color));
         }
-        TitleS2CPacket titlePacket = new TitleS2CPacket(titleText);
-        player.networkHandler.sendPacket(titlePacket);
+        if (isSubtitle){
+            SubtitleS2CPacket titlePacket = new SubtitleS2CPacket((titleText));
+            player.networkHandler.sendPacket(titlePacket);
+        } else {
+            TitleS2CPacket titlePacket = new TitleS2CPacket(titleText);
+            player.networkHandler.sendPacket(titlePacket);
+        }
 
     }
     public static void sendTitle(Collection<ServerPlayerEntity> targets, String message, Formatting color, boolean isBold) {
+        sendTitle(targets, message, color, isBold, false);
+    }
+
+    public static void sendTitle(Collection<ServerPlayerEntity> targets, String message, Formatting color, boolean isBold, boolean isSubtitle) {
         Text titleText;
         if (isBold) {
             titleText= Text.literal(message).styled(style -> style.withColor(color).withBold(isBold));
@@ -99,27 +113,40 @@ public class Utility {
         }
         for (ServerPlayerEntity player : targets) {
             if(player == null) return;
-            TitleS2CPacket titlePacket = new TitleS2CPacket(titleText);
-            player.networkHandler.sendPacket(titlePacket);
+            if (isSubtitle){
+                SubtitleS2CPacket titlePacket = new SubtitleS2CPacket((titleText));
+                player.networkHandler.sendPacket(titlePacket);
+            } else {
+                TitleS2CPacket titlePacket = new TitleS2CPacket(titleText);
+                player.networkHandler.sendPacket(titlePacket);
+            }
         }
     }
 
 
-    public static Map<String, Long> calculateDurations(List<TimeEntry> entries) {
+    public static Map<String, Long> calculateDurations(List<TimeEntry> entries, List<PenaltyEntry> penalties) {
         Map<String, Long> durations = new HashMap<>();
-        if(entries.isEmpty()) return durations;
 
-        for (int i = 0; i < entries.size()-1; i++) {
-            TimeEntry entry = entries.get(i);
-            TimeEntry next = entries.get(i + 1);
-            long duration = next.time() - entry.time();
-            durations.merge(entry.player(), duration, Long::sum);
+        if (!entries.isEmpty()) {
+            for (int i = 0; i < entries.size() - 1; i++) {
+                TimeEntry entry = entries.get(i);
+                TimeEntry next = entries.get(i + 1);
+                long duration = next.time() - entry.time();
+                durations.merge(entry.player(), duration, Long::sum);
+            }
+
+            TimeEntry last = entries.get(entries.size() - 1);
+            long currentDuration = Instant.now().getEpochSecond() - last.time();
+            durations.merge(last.player(), currentDuration, Long::sum);
         }
-        TimeEntry last = entries.get(entries.size() - 1);
-        long duration = Instant.now().getEpochSecond() - last.time();
-        durations.merge(last.player(), duration, Long::sum);
 
-        return  durations;
+        if (penalties != null) {
+            for (PenaltyEntry penalty : penalties) {
+                durations.merge(penalty.player(), penalty.time(), Long::sum);
+            }
+        }
+
+        return durations;
     }
 
 

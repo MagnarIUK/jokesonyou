@@ -223,7 +223,7 @@ public abstract class ItemEntityMixin implements ProtectedItemAccessor {
         }
 
         assert player instanceof ServerPlayerEntity;
-        JokesOnYou.handleJokePass((ServerPlayerEntity) player);
+        JokesOnYou.handleJokePass((ServerPlayerEntity) player, this.jokesOnYou$angerLevel* 60L);
         player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.PLAYERS, 0.5f, 1.0f);
 
@@ -233,7 +233,7 @@ public abstract class ItemEntityMixin implements ProtectedItemAccessor {
 
     @Unique
     private void successLogic(PlayerEntity player, CallbackInfo ci) {
-        JokesOnYou.handleJokePass((ServerPlayerEntity) player);
+        JokesOnYou.handleJokePass((ServerPlayerEntity) player, this.jokesOnYou$angerLevel* 60L);
         player.getWorld().playSound(null, player.getX(), player.getY(), player.getZ(),
                 SoundEvents.ENTITY_ITEM_PICKUP, SoundCategory.PLAYERS, 0.2f, 2.0f);
         this.setDespawnImmediately();

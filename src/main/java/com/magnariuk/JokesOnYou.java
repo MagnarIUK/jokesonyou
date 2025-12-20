@@ -1,6 +1,7 @@
 package com.magnariuk;
 
 import com.magnariuk.abstracts.PlayerPickupItemCallback;
+import com.magnariuk.records.PenaltyEntry;
 import com.magnariuk.records.TimeEntry;
 import com.magnariuk.records.TimeMap;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -12,12 +13,9 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerWorldEvents;
-import net.minecraft.advancement.PlayerAdvancementTracker;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.Team;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -25,14 +23,11 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static net.minecraft.server.command.CommandManager.argument;
 
 import java.time.Instant;
 import java.util.*;
@@ -54,7 +49,7 @@ public class JokesOnYou implements ModInitializer {
 
 	public static final AttachmentType<TimeMap> TIME_DATA =
 			AttachmentRegistry.createPersistent(Identifier.of(JokesOnYou.MOD_ID, "time_data"), TimeMap.TIME_MAP_CODEC);
-	public static final Supplier<TimeMap> TIME_DATA_SUPPLIER = ()  -> new TimeMap("none",  false, new ArrayList<>());
+	public static final Supplier<TimeMap> TIME_DATA_SUPPLIER = ()  -> new TimeMap("none",  false, new ArrayList<>(), new ArrayList<>());
 
 
 
@@ -137,7 +132,7 @@ public class JokesOnYou implements ModInitializer {
 	}
 
 
-	public static void handleJokePass(ServerPlayerEntity player) {
+	public static void handleJokePass(ServerPlayerEntity player, long penalty) {
 		MinecraftServer server = player.getServer();
 		if (server == null) return;
 
@@ -153,8 +148,17 @@ public class JokesOnYou implements ModInitializer {
 			}
 
 			if (!timeMap.current().equals(playerName)) {
-				world.setAttached(TIME_DATA, timeMap.update(playerName, new TimeEntry(playerName, Instant.now().getEpochSecond())));
+					TimeMap newState = timeMap.update(playerName, new TimeEntry(playerName, Instant.now().getEpochSecond()));
+
+					if (penalty > 0) {
+						newState = newState.updatePenalty(playerName, penalty);
+					}
+
+					world.setAttached(TIME_DATA, newState);
 				Utility.sendTitle(player, "Joke's on you!", Formatting.RED, true);
+				if (penalty > 0) {
+					Utility.sendTitle(player, String.format("You got penalty: %d seconds", penalty), Formatting.YELLOW, false, true);
+				}
 
 				ServerPlayerEntity oldOwner = server.getPlayerManager().getPlayer(timeMap.current());
 				if (oldOwner != null) {
@@ -165,6 +169,7 @@ public class JokesOnYou implements ModInitializer {
 			player.sendMessage(Text.of("Game is not running."), true);
 		}
 	}
+
 	public enum PickupResult {
 		YOU_ARE_JOKE,
 		NOT_JOKE,
@@ -205,8 +210,14 @@ public class JokesOnYou implements ModInitializer {
 		if(tm!=null) {
 			PlayerEntity cur =  server.getPlayerManager().getPlayer(tm.current());
 			if(cur!=null) {
-				cur.getInventory().removeStack(cur.getInventory().getSlotWithStack(getJokeCard()));
-			} else{
+				PlayerInventory inv = cur.getInventory();
+				for (int i = 0; i < inv.size(); i++) {
+					ItemStack stack = inv.getStack(i);
+					if (Utility.isJokeCard(stack)) {
+						inv.removeStack(i);
+						break;
+					}
+				}			} else{
 				source.sendMessage(Text.of("Joke isn't on the server, card isn't removed!"));
 			}
 
@@ -315,9 +326,10 @@ public class JokesOnYou implements ModInitializer {
 				} catch(Exception e){
 					e.printStackTrace();
 				}
+				gameRules(context, true);
 
 			}, 17, TimeUnit.SECONDS );
-			gameRules(context, true);
+
 
 		}else{
 			source.sendMessage(Text.of("Game is already running!"));
@@ -391,15 +403,19 @@ public class JokesOnYou implements ModInitializer {
 			v.append("Data\n");
 			v.append(String.format("Paused: %b\n", te.isPaused()));
 			v.append(String.format("Current Joke: %s\n", te.current()));
+			v.append("Entries: \n");
 			for (TimeEntry timeEntry : te.entries()) {
 				v.append(String.format("Player: %s, Time: %d\n", timeEntry.player(), timeEntry.time()));
+			}
+			v.append("Penalties: \n");
+			for (PenaltyEntry penaltyEntry : te.penalties()) {
+				v.append(String.format("Player: %s, Time: %d\n", penaltyEntry.player(), penaltyEntry.time()));
 			}
 
 			source.sendMessage( Text.literal(v.toString()) );
 		} else{
 			source.sendMessage( Text.of("Game isn't started yet!"));
 		}
-
 		return 1;
 	}
 
@@ -411,7 +427,7 @@ public class JokesOnYou implements ModInitializer {
 			TimeMap te = world.getAttachedOrElse(TIME_DATA, null);
 			if(te != null) {
 
-				Map<String, Long> players = calculateDurations(te.entries());
+				Map<String, Long> players = calculateDurations(te.entries(), te.penalties());
 				StringBuilder v = new StringBuilder();
 				v.append("Results\n");
 				players.forEach((playerName, duration) -> {
