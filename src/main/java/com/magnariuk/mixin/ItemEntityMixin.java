@@ -75,7 +75,22 @@ public abstract class ItemEntityMixin implements ProtectedItemAccessor {
             "Wee woo, joke inbound.",
             "Hey, you dropped something.",
             "Be a good protagonist and advance the plot.",
-            "Behold! Your tax documents! Pick them up please."
+            "Behold! Your tax documents! Pick them up please.",
+            "It's dangerous to go alone! Take this.",
+            "A wild Joke appeared! It uses 'Enter Inventory'. It failed.",
+            "Is your 'Q' key broken? Do you need tech support?",
+            "I'm not despawning. I have all day.",
+            "Knock knock. Who's there? A free slot. Open up.",
+            "Your pockets look heavy. Let me help with advice: DROP IT.",
+            "Swiper, no swiping! Just picking up!",
+            "Message for you, sir! (It's on the floor).",
+            "I bet you keep your room this messy too.",
+            "Hint: The 'Drop' key is usually 'Q' or 'Ctrl+Q'.",
+            "Are you waiting for a written invitation? This IS the invitation.",
+            "Loading inventory space... Error: 0% found.",
+            "You missed a spot.",
+            "Don't leave me hanging here.",
+            "I promise I don't bite. Hard."
     );
 
     @Unique
@@ -97,7 +112,23 @@ public abstract class ItemEntityMixin implements ProtectedItemAccessor {
             "I'm about to report you for 'Being Annoying'.",
             "Imagine being afraid of a piece of paper.",
             "Wow. So much junk. So little skill.",
-            "Idiotic creature, cling to that paper with your life."
+            "Idiotic creature, cling to that paper with your life.",
+            "The Joke is on the floor, but the clown is staring at it.",
+            "Why do you have 13 Rotten Flesh? Are you eating that?",
+            "I hope a Creeper sneaks up on you while you organize.",
+            "You are single-handedly ruining the pacing of this game.",
+            "Drop the Andesite. Nobody likes Andesite.",
+            "I am judging you. The server is judging you. God is judging you.",
+            "Stop staring at me and PRESS Q.",
+            "Your inventory looks like a dumpster fire.",
+            "If I had legs, I would kick your shins.",
+            "You are the bottleneck of this entire operation.",
+            "Congratulations, you played yourself.",
+            "Even a Villager has better trade offers than your empty slots.",
+            "I am rapidly approaching your location. Pick. It. Up.",
+            "Do you want a penalty? Because this is how you get penalties.",
+            "You're acting like an NPC right now.",
+            "Acting busy won't save you from the inevitable."
     );
 
     @Unique
@@ -116,7 +147,22 @@ public abstract class ItemEntityMixin implements ProtectedItemAccessor {
             "DO NOT TEST ME, MORTAL.",
             "TICK TOCK. TICK TOCK.",
             "TAKE THE LETTER, THE GODS DEMAND IT",
-            "You little-shit, wipe yourself with that paper on the floor."
+            "You little-shit, wipe yourself with that paper on the floor.",
+            "I WILL DELETE YOUR DIAMONDS IF YOU WAIT ONE MORE SECOND.",
+            "LOOK AT ME. I AM THE INVENTORY NOW.",
+            "YOUR FREE TRIAL OF LIVING HAS EXPIRED.",
+            "SCREAMING WON'T CLEAR A SLOT. DROPPING ITEMS WILL.",
+            "I AM BECOMING TANGIBLE. RUN.",
+            "EXECUTE ORDER 66 ON YOUR INVENTORY.",
+            "I WILL TURN YOUR ARMOR INTO AIR.",
+            "DO YOU WANT TO PLAY A GAME? PICK IT UP.",
+            "I AM INEVITABLE.",
+            "CEASE YOUR EXISTENCE OR CEASE YOUR GREED.",
+            "THE VOID IS CALLING. IT WANTS YOUR ITEMS.",
+            "LAST CHANCE BEFORE I FORCE MY WAY IN.",
+            "YOU HAVE CHOSEN VIOLENCE.",
+            "BLOOD FOR THE BLOOD GOD, SLOTS FOR THE JOKE CARD.",
+            "I WILL HAUNT YOUR MINECRAFT WORLD FOREVER."
     );
     @Unique private static final int MAX_ANGER = 10;
     @Unique private static final Random RANDOM = new Random();
