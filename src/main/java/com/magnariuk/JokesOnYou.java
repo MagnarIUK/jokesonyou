@@ -287,7 +287,7 @@ public class JokesOnYou implements ModInitializer {
 					.append(Text.literal("\n5. Keep 1 inventory slot empty to catch the Joke.").formatted(Formatting.YELLOW))
 					.append(Text.literal("\n6. Filling your inventory to block the Joke is CHEATING.").formatted(Formatting.RED))
 					.append(Text.literal("\n7. Time DOES NOT STOP if you disconnect or hide the card.").formatted(Formatting.DARK_RED))
-					.append(Text.literal("\n	 (You are only punishing yourself!)").formatted(Formatting.GRAY).formatted(Formatting.ITALIC))
+					.append(Text.literal("\n   (You are only punishing yourself!)").formatted(Formatting.GRAY).formatted(Formatting.ITALIC))
 					.append(Text.literal("\n8. Have fun!").formatted(Formatting.GOLD));
 
 			player.sendMessage(message, false);
