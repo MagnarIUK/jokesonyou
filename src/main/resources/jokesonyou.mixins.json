@@ -3,6 +3,9 @@
 	"package": "com.magnariuk.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"FoxEntityMixin",
+		"ItemEntityMixin",
+		"PlayerEntityMixin",
 		"PlayerInventoryMixin"
 	],
 	"injectors": {

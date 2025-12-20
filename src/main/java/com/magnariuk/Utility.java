@@ -1,17 +1,11 @@
 package com.magnariuk;
 
 import com.magnariuk.records.TimeEntry;
-import com.magnariuk.records.TimeMap;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.component.type.LoreComponent;
 import net.minecraft.component.type.NbtComponent;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
@@ -20,14 +14,10 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Rarity;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Supplier;
-
-import static com.magnariuk.records.TimeEntry.TIME_ENTRY_CODEC;
 
 public class Utility {
 
@@ -62,6 +52,7 @@ public class Utility {
         lore.add(Text.literal("To put them on someone else"));
         lore.add(Text.literal("Try to Drop this into someone else's inventory"));
         lore.add(Text.literal("Players who had the Joke on them the least, will win"));
+        lore.add(Text.literal("('/jokesonyou rules' for full rules)"));
         jokeCard.set(DataComponentTypes.LORE, new LoreComponent(lore));
 
         NbtCompound tag = new NbtCompound();
@@ -70,6 +61,13 @@ public class Utility {
 
         return jokeCard;
     }
+
+    public static boolean isJokeCard(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        var components = stack.get(DataComponentTypes.CUSTOM_DATA);
+        return components != null && components.contains("joker");
+    }
+
     static String convertToTime(Long time){
         long hours = time / 3600;
         long minutes = (time % 3600) / 60;
@@ -81,6 +79,7 @@ public class Utility {
 
 
     public static void sendTitle(ServerPlayerEntity player, String message, Formatting color, boolean isBold) {
+        if(player == null) return;
         Text titleText;
         if (isBold) {
             titleText= Text.literal(message).styled(style -> style.withColor(color).withBold(isBold));
@@ -99,6 +98,7 @@ public class Utility {
             titleText = Text.literal(message).styled(style -> style.withColor(color));
         }
         for (ServerPlayerEntity player : targets) {
+            if(player == null) return;
             TitleS2CPacket titlePacket = new TitleS2CPacket(titleText);
             player.networkHandler.sendPacket(titlePacket);
         }

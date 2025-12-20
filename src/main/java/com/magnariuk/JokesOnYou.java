@@ -23,6 +23,7 @@ import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Formatting;
@@ -32,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static net.minecraft.server.command.CommandManager.argument;
-import static net.minecraft.server.command.CommandManager.literal;
 
 import java.time.Instant;
 import java.util.*;
@@ -60,56 +60,142 @@ public class JokesOnYou implements ModInitializer {
 
     @Override
 	public void onInitialize() {
-		PlayerPickupItemCallback.EVENT.register((inventory, slot, stack) -> {
-			if(ItemStack.areEqual(stack, getJokeCard())) {
-				MinecraftServer server = inventory.player.getServer();
-				if (server != null) {
-					ServerWorld world = server.getWorld(World.OVERWORLD);
-					TimeMap timeMap = world.getAttachedOrCreate(TIME_DATA, TIME_DATA_SUPPLIER);
-
-					if (timeMap != null) {
-						if (timeMap.isPaused()) {
-							inventory.player.getCommandSource().sendMessage(Text.of("Game is paused. Please, return The Joke to " + timeMap.current()));
-						} else {
-							if (!timeMap.current().equals(inventory.player.getGameProfile().getName())) {
-
-								world.setAttached(TIME_DATA, timeMap.update(inventory.player.getGameProfile().getName(), new TimeEntry(inventory.player.getGameProfile().getName(), Instant.now().getEpochSecond())));
-								sendTitle(server.getPlayerManager().getPlayer(inventory.player.getGameProfile().getId()), "Joke's on you!", Formatting.RED, false);
-							}
-						}
-					} else {
-						inventory.player.getCommandSource().sendMessage(Text.of("Game is not running."));
-					}
-
-				} else {
-					LOGGER.warn("Server is null");
-				}
-			}
-			return ActionResult.PASS;
-		});
+//		PlayerPickupItemCallback.EVENT.register((inventory, slot, stack) -> {
+//			if(ItemStack.areEqual(stack, getJokeCard())) {
+//				MinecraftServer server = inventory.player.getServer();
+//				if (server != null) {
+//					ServerWorld world = server.getWorld(World.OVERWORLD);
+//					TimeMap timeMap = world.getAttachedOrCreate(TIME_DATA, TIME_DATA_SUPPLIER);
+//
+//					if (timeMap != null) {
+//						if (timeMap.isPaused() && !timeMap.current().equals(inventory.player.getGameProfile().getName())) {
+//							inventory.player.getCommandSource().sendMessage(Text.of("Game is paused. Please, return The Joke to " + timeMap.current()));
+//						} else {
+//							if (!timeMap.current().equals(inventory.player.getGameProfile().getName())) {
+//								world.setAttached(TIME_DATA, timeMap.update(inventory.player.getGameProfile().getName(), new TimeEntry(inventory.player.getGameProfile().getName(), Instant.now().getEpochSecond())));
+//								sendTitle(server.getPlayerManager().getPlayer(inventory.player.getGameProfile().getId()), "Joke's on you!", Formatting.RED, false);
+//								sendTitle(server.getPlayerManager().getPlayer(timeMap.current()), "Joke's not on you!", Formatting.GREEN, false);
+//							}
+//						}
+//					} else {
+//						inventory.player.getCommandSource().sendMessage(Text.of("Game is not running."));
+//					}
+//
+//				} else {
+//					LOGGER.warn("Server is null");
+//				}
+//			}
+//			return ActionResult.PASS;
+//		});
 
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
 			dispatcher.register(CommandManager.literal("jokesonyou")
-					.then(CommandManager.literal("startTheGame").executes(JokesOnYou::startTheGame)
-							.requires(source -> source.hasPermissionLevel(2)))
-					.then(CommandManager.literal("getData").executes(JokesOnYou::getData)
-							.requires(source -> source.hasPermissionLevel(1)))
-					.then(CommandManager.literal("getResults").executes(JokesOnYou::getResults)
-							.requires(source -> source.hasPermissionLevel(1)))
-					.then(CommandManager.literal("giveJokeCard").executes(JokesOnYou::giveJokeCard))
-					.then(CommandManager.literal("amIJoke").executes(JokesOnYou::amIJoke))
-					.then(CommandManager.literal("stopTheGame").then(argument("stop", BoolArgumentType.bool())
-							.executes(context -> JokesOnYou.stopGame(context, BoolArgumentType.getBool(context, "stop")))))
+
+					.then(CommandManager.literal("startTheGame")
 							.requires(source -> source.hasPermissionLevel(2))
-					.then(CommandManager.literal("remove").requires(source -> source.hasPermissionLevel(2))
-							.executes(JokesOnYou::removeJoke)));
-				});
+							.executes(JokesOnYou::startTheGame)
+					)
+
+					.then(CommandManager.literal("getData")
+							.requires(source -> source.hasPermissionLevel(2))
+							.executes(JokesOnYou::getData)
+					)
+
+					.then(CommandManager.literal("getResults")
+							.requires(source -> source.hasPermissionLevel(2))
+							.executes(JokesOnYou::getResults)
+					)
+
+					.then(CommandManager.literal("giveJokeCard").executes(JokesOnYou::giveJokeCard))
+
+					.then(CommandManager.literal("amIJoke").executes(JokesOnYou::amIJoke))
+
+					.then(CommandManager.literal("pauseTheGame")
+							.requires(source -> source.hasPermissionLevel(2))
+							.then(CommandManager.argument("pause", BoolArgumentType.bool())
+									.executes(context -> JokesOnYou.stopGame(context, BoolArgumentType.getBool(context, "pause")))
+							)
+					)
+
+					.then(CommandManager.literal("rules")
+							.executes(context -> JokesOnYou.gameRules(context, false))
+
+							.then(CommandManager.argument("broadcast", BoolArgumentType.bool())
+									.requires(source -> source.hasPermissionLevel(2))
+									.executes(context -> JokesOnYou.gameRules(context, BoolArgumentType.getBool(context, "broadcast")))
+							)
+					)
+
+					.then(CommandManager.literal("remove")
+							.requires(source -> source.hasPermissionLevel(2))
+							.executes(JokesOnYou::removeJoke))
+			);
+		});
 
 
 		LOGGER.info("Jokes on you initialized!");
 	}
 
 
+	public static void handleJokePass(ServerPlayerEntity player) {
+		MinecraftServer server = player.getServer();
+		if (server == null) return;
+
+		ServerWorld world = server.getWorld(World.OVERWORLD);
+		TimeMap timeMap = world.getAttachedOrCreate(TIME_DATA, TIME_DATA_SUPPLIER);
+
+		if (timeMap != null) {
+			String playerName = player.getGameProfile().getName();
+
+			if (timeMap.isPaused() && !timeMap.current().equals(playerName)) {
+				player.sendMessage(Text.of("Game is paused. Please, return The Joke to " + timeMap.current()), true);
+				return;
+			}
+
+			if (!timeMap.current().equals(playerName)) {
+				world.setAttached(TIME_DATA, timeMap.update(playerName, new TimeEntry(playerName, Instant.now().getEpochSecond())));
+				Utility.sendTitle(player, "Joke's on you!", Formatting.RED, true);
+
+				ServerPlayerEntity oldOwner = server.getPlayerManager().getPlayer(timeMap.current());
+				if (oldOwner != null) {
+					Utility.sendTitle(oldOwner, "Joke's not on you!", Formatting.GREEN, false);
+				}
+			}
+		} else {
+			player.sendMessage(Text.of("Game is not running."), true);
+		}
+	}
+	public enum PickupResult {
+		YOU_ARE_JOKE,
+		NOT_JOKE,
+		GAME_NOT_RUNNING,
+		GAME_PAUSED_RETURN_TO_JOKE
+	}
+
+	public static PickupResult validatePickup(ServerPlayerEntity player) {
+		MinecraftServer server = player.getServer();
+		if (server == null) return PickupResult.GAME_NOT_RUNNING;
+
+		ServerWorld world = server.getWorld(World.OVERWORLD);
+		TimeMap timeMap = world.getAttachedOrCreate(TIME_DATA, TIME_DATA_SUPPLIER);
+
+		if (timeMap == null) {
+			return PickupResult.GAME_NOT_RUNNING;
+		}
+
+		String playerName = player.getGameProfile().getName();
+		String currentJokeHolder = timeMap.current();
+
+		if (timeMap.isPaused() && !currentJokeHolder.equals(playerName)) {
+			return PickupResult.GAME_PAUSED_RETURN_TO_JOKE;
+		}
+
+		if (currentJokeHolder.equals(playerName)) {
+			return PickupResult.YOU_ARE_JOKE;
+		} else {
+			return PickupResult.NOT_JOKE;
+		}
+	}
 
 	private static int removeJoke(CommandContext<ServerCommandSource> context){
 		ServerCommandSource source = context.getSource();
@@ -134,6 +220,7 @@ public class JokesOnYou implements ModInitializer {
 
 		return 1;
 	}
+
 	private static int stopGame(CommandContext<ServerCommandSource> context, boolean paused) {
 		ServerCommandSource source = context.getSource();
 		MinecraftServer server = source.getServer();
@@ -161,6 +248,41 @@ public class JokesOnYou implements ModInitializer {
 		}
 
 		return 1;
+	}
+
+	private static int gameRules(CommandContext<ServerCommandSource> context, boolean broadcast) {
+		ServerCommandSource source = context.getSource();
+		MinecraftServer server = source.getServer();
+
+		Collection<ServerPlayerEntity> targets;
+		if (broadcast) {
+			targets = server.getPlayerManager().getPlayerList();
+		} else {
+			ServerPlayerEntity player = source.getPlayer();
+			if (player == null) return 0;
+			targets = Collections.singletonList(player);
+		}
+
+		for (ServerPlayerEntity player : targets) {
+			MutableText message = Text.literal("Hi ")
+					.append(player.getDisplayName().copy().formatted(Formatting.GOLD))
+					.append(Text.literal("... Here are the rules of the game:").formatted(Formatting.GRAY))
+					.append(Text.literal("\n1. One of you has the Joke.").formatted(Formatting.WHITE))
+					.append(Text.literal("\n2. As soon as you get the Joke, time starts ticking...").formatted(Formatting.RED))
+					.append(Text.literal("\n3. Throw the card to another player to pass it.").formatted(Formatting.WHITE))
+					.append(Text.literal("\n   WAIT FOR THE 'JOKE IS NOT ON YOU' TITLE!").formatted(Formatting.RED))
+					.append(Text.literal("\n   (Or check manually: '/jokesonyou amIJoke')").formatted(Formatting.RED))
+					.append(Text.literal("\n4. Player with the LEAST time holding the Joke wins.").formatted(Formatting.GREEN))
+					.append(Text.literal("\n5. Keep 1 inventory slot empty to catch the Joke.").formatted(Formatting.YELLOW))
+					.append(Text.literal("\n6. Filling your inventory to block the Joke is CHEATING.").formatted(Formatting.RED))
+					.append(Text.literal("\n7. Time DOES NOT STOP if you disconnect or hide the card.").formatted(Formatting.DARK_RED))
+					.append(Text.literal("\n	 (You are only punishing yourself!)").formatted(Formatting.GRAY).formatted(Formatting.ITALIC))
+					.append(Text.literal("\n8. Have fun!").formatted(Formatting.GOLD));
+
+			player.sendMessage(message, false);
+		}
+		return 1;
+
 	}
 
 	private static int startTheGame(CommandContext<ServerCommandSource> context){
@@ -195,6 +317,8 @@ public class JokesOnYou implements ModInitializer {
 				}
 
 			}, 17, TimeUnit.SECONDS );
+			gameRules(context, true);
+
 		}else{
 			source.sendMessage(Text.of("Game is already running!"));
 		}
